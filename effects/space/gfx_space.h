@@ -51,6 +51,8 @@ void gfx_space_init(gfx_space_state *state);
 void gfx_space_process_sample(gfx_space_state *state, float *left, float *right, float macro);
 void gfx_space_process(gfx_space_state *state, float *left, float *right,
                        size_t frame_count, float macro);
+void gfx_space_process_interleaved(gfx_space_state *state, float *stereo,
+                                   size_t frame_count, float macro);
 
 #ifdef __cplusplus
 }
