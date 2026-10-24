@@ -170,7 +170,9 @@ static int test_antiphase_input(void)
     gfx_space_state state;
     float pre_l[8], pre_r[8];
     size_t remaining = PRE_ROLL;
-    float tail_rms;
+    float tail_rms, mono_tail_rms;
+    double mono_energy = 0.0;
+    size_t i;
     gfx_space_init(&state);
     while (remaining > 0u) {
         const size_t n = remaining < 8u ? remaining : 8u;
@@ -187,9 +189,18 @@ static int test_antiphase_input(void)
     tail_rms = rms_range(left, right,
         (size_t)(0.05f * (float)GFX_SPACE_SAMPLE_RATE),
         (size_t)(1.50f * (float)GFX_SPACE_SAMPLE_RATE));
+    for (i = (size_t)(0.05f * (float)GFX_SPACE_SAMPLE_RATE);
+         i < (size_t)(1.50f * (float)GFX_SPACE_SAMPLE_RATE); ++i) {
+        const double mono = 0.5 * ((double)left[i] + right[i]);
+        mono_energy += mono * mono;
+    }
+    mono_tail_rms = (float)sqrt(mono_energy /
+        (double)((size_t)(1.45f * (float)GFX_SPACE_SAMPLE_RATE)));
     printf("antiphase stereo excitation RMS: %.8f (%s)\n",
            tail_rms, tail_rms > 1.0e-5f ? "PASS" : "FAIL");
-    return tail_rms > 1.0e-5f ? 0 : 1;
+    printf("antiphase mono-fold tail RMS: %.8f (%s)\n",
+           mono_tail_rms, mono_tail_rms > 1.0e-5f ? "PASS" : "FAIL");
+    return (tail_rms > 1.0e-5f && mono_tail_rms > 1.0e-5f) ? 0 : 1;
 }
 
 int main(void)
