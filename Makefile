@@ -2,7 +2,7 @@ CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Wpedantic -Werror
 CPPFLAGS ?=
 LDLIBS_COMMON = -lm
-SPACE_DIR = effects/space/hall
+SPACE_DIR = effects/space
 SPACE_SRC = $(SPACE_DIR)/gfx_space.c
 SPACE_HDR = $(SPACE_DIR)/gfx_space.h
 INCLUDES = -I$(SPACE_DIR)
@@ -24,6 +24,6 @@ test: $(BUILD_DIR)/gfx_test_space
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f space_impulse.csv $(BUILD_DIR)/space_impulse.csv
+	rm -f space_impulse.csv space_room_impulse.csv space_hall_impulse.csv
 
 .PHONY: all test clean
