@@ -155,7 +155,12 @@ static int run_impulse(float macro, const char *name, const char *csv,
     printf("%s stereo correlation: %.3f; mono-fold RMS: %.6f\n",
            name, corr, mono_rms);
 
-    if (peak > 1.0f) { printf("%s peak safety: FAIL\n", name); failed = 1; }
+    if (peak > (0.5f * 1.41421356f)) {
+        printf("%s peak gain limit (+3 dB): FAIL\n", name);
+        failed = 1;
+    } else {
+        printf("%s peak gain limit (+3 dB): PASS\n", name);
+    }
     if (mono_rms < 1.0e-6f) { printf("%s mono fold-down: FAIL\n", name); failed = 1; }
     if (corr > 0.995f) { printf("%s stereo distinction: WARN (high correlation)\n", name); }
 
