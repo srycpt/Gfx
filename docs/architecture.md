@@ -86,3 +86,18 @@ void effect_process(float macro);
 - Sound quality comes first while staying within the WCET budget.
 - Avoid premature optimization; measure and optimize when evidence indicates it is necessary.
 - Keep effects modular and independently testable.
+
+
+### 7. Space effect contract
+
+The Space axis is bipolar:
+
+- Negative macro: intimate room/plate voicing, short diffusion delays, nominal T60 from 0.30 to 1.50 s.
+- Zero: bit-exact dry output at unity; both room and hall states continue updating.
+- Positive macro: expansive hall, with T60 extending toward 5.00 s.
+- Wet mix increases with absolute macro, reaching 0.60 at either endpoint.
+- Room and hall use independent eight-line FDNs with normalized Hadamard feedback, independent stereo input diffusers, and distinct stereo output projections.
+- The room/hall character blend is smoothed through the center region to prevent a polarity-switch discontinuity.
+- Feedback gains are calibrated against host impulse-response T60 fits; rerun those fits after changing delay lengths or damping.
+
+The host test checks exact bypass while state advances, finite/stable output, peak level, approximate endpoint T60, stereo correlation, mono fold-down energy, and antiphase stereo excitation. These checks do not replace listening tests or target-device WCET measurement.
