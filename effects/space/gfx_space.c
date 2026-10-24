@@ -167,12 +167,15 @@ void gfx_space_process_sample(gfx_space_state *state, float *left, float *right,
     float dry_l, dry_r, mono, room_l, room_r, hall_l, hall_r, wet_l, wet_r;
     if (state == NULL || left == NULL || right == NULL) return;
     if (!state->initialized) gfx_space_init(state);
+    if (!isfinite(macro)) macro = 0.0f;
+    macro = clampf_local(macro, -1.0f, 1.0f);
     dry_l = *left;
     dry_r = *right;
+    state->smoothed_macro += GFX_SMOOTH_COEFF * (macro - state->smoothed_macro);
 
     /* Parameter curves and exp/log work run at the 8-frame block rate. */
     if (state->parameter_counter == 0u) {
-        targets_from_macro(macro, state);
+        targets_from_macro(state->smoothed_macro, state);
         update_feedback_gains(state, ROOM, state->room_decay_seconds);
         update_feedback_gains(state, HALL, state->hall_decay_seconds);
     }
@@ -193,16 +196,13 @@ void gfx_space_process_sample(gfx_space_state *state, float *left, float *right,
     if (macro == 0.0f) {
         *left = dry_l;
         *right = dry_r;
-    } else if (macro < 0.0f) {
-        const float m = state->wet_mix;
-        wet_l = room_l;
-        wet_r = room_r;
-        *left = (1.0f - m) * dry_l + m * wet_l;
-        *right = (1.0f - m) * dry_r + m * wet_r;
     } else {
         const float m = state->wet_mix;
-        wet_l = hall_l;
-        wet_r = hall_r;
+        float side = clampf_local((state->smoothed_macro + 0.25f) / 0.50f, 0.0f, 1.0f);
+        /* Smoothly crossfade room and hall voicings through the dry center. */
+        side = side * side * (3.0f - 2.0f * side);
+        wet_l = lerpf(room_l, hall_l, side);
+        wet_r = lerpf(room_r, hall_r, side);
         *left = (1.0f - m) * dry_l + m * wet_l;
         *right = (1.0f - m) * dry_r + m * wet_r;
     }
