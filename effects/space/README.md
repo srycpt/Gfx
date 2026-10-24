@@ -38,7 +38,7 @@ void gfx_space_process_interleaved(gfx_space_state *state, float *stereo,
                                    size_t frame_count, float macro);
 ```
 
-The processing functions are in-place. The interleaved variant expects `[L0,R0,L1,R1,...]`. The caller owns the state and should give it static storage on the MCU; the state consumes approximately 83 KiB.
+The processing functions are in-place. The interleaved variant expects `[L0,R0,L1,R1,...]`. The caller owns the state and should give it static storage on the MCU; the state consumes approximately 83 kB (about 81 KiB).
 
 The state-based API is suitable for host testing and adaptation to the engine's final working-buffer symbol/layout. No guessed global engine buffer is embedded here.
 
