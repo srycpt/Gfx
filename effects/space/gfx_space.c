@@ -76,6 +76,10 @@ static void targets_from_macro(float macro, gfx_space_state *s)
     s->target_hall_damping_alpha = damping_alpha(hall_cutoff);
 }
 
+/*
+ * Host impulse fits show the damping loop shortens broadband T60 by about 9%.
+ * Apply 1.10 compensation; remeasure if delay lengths or damping curves change.
+ */
 static void update_feedback_gains(gfx_space_state *s, unsigned network, float t60)
 {
     unsigned i;
@@ -83,7 +87,7 @@ static void update_feedback_gains(gfx_space_state *s, unsigned network, float t6
         const float delay = (float)k_fdn_delay[network][i];
         s->feedback_gain[network][i] =
             expf((-GFX_T60_LN1000 * delay) /
-                 ((float)GFX_SPACE_SAMPLE_RATE * t60));
+                 ((float)GFX_SPACE_SAMPLE_RATE * (t60 * 1.10f)));
     }
 }
 
