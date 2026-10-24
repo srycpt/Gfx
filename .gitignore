@@ -1,0 +1,7 @@
+/build/
+/gfx_listen
+/gfx_test_space
+/space_impulse.csv
+*.o
+*.a
+*.so
