@@ -109,6 +109,8 @@ static int run_impulse(float macro, const char *name, const char *csv,
     gfx_space_init(&state);
     while (remaining > 0u) {
         const size_t n = remaining < 8u ? remaining : 8u;
+        memset(pre_l, 0, sizeof(pre_l));
+        memset(pre_r, 0, sizeof(pre_r));
         gfx_space_process(&state, pre_l, pre_r, n, macro);
         remaining -= n;
     }
