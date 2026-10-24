@@ -165,6 +165,33 @@ static int run_impulse(float macro, const char *name, const char *csv,
     return failed;
 }
 
+static int test_antiphase_input(void)
+{
+    gfx_space_state state;
+    float pre_l[8], pre_r[8];
+    size_t remaining = PRE_ROLL;
+    float tail_rms;
+    gfx_space_init(&state);
+    while (remaining > 0u) {
+        const size_t n = remaining < 8u ? remaining : 8u;
+        memset(pre_l, 0, sizeof(pre_l));
+        memset(pre_r, 0, sizeof(pre_r));
+        gfx_space_process(&state, pre_l, pre_r, n, 1.0f);
+        remaining -= n;
+    }
+    memset(left, 0, sizeof(left));
+    memset(right, 0, sizeof(right));
+    left[0] = 0.5f;
+    right[0] = -0.5f;
+    gfx_space_process(&state, left, right, N, 1.0f);
+    tail_rms = rms_range(left, right,
+        (size_t)(0.05f * (float)GFX_SPACE_SAMPLE_RATE),
+        (size_t)(1.50f * (float)GFX_SPACE_SAMPLE_RATE));
+    printf("antiphase stereo excitation RMS: %.8f (%s)\n",
+           tail_rms, tail_rms > 1.0e-5f ? "PASS" : "FAIL");
+    return tail_rms > 1.0e-5f ? 0 : 1;
+}
+
 int main(void)
 {
     gfx_space_state state;
@@ -185,5 +212,6 @@ int main(void)
 
     failed |= run_impulse(-1.0f, "ROOM", "space_room_impulse.csv", 0.1f, 1.2f);
     failed |= run_impulse(1.0f, "HALL", "space_hall_impulse.csv", 0.3f, 4.5f);
+    failed |= test_antiphase_input();
     return failed ? 1 : 0;
 }
