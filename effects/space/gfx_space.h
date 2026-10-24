@@ -31,6 +31,7 @@ typedef struct {
     float damping_state[2][8];
     float feedback_gain[2][8];
 
+    float smoothed_macro;
     float wet_mix;
     float room_decay_seconds;
     float hall_decay_seconds;
