@@ -20,9 +20,9 @@ extern "C" {
  * Fixed-memory, allocation-free, portable C11 implementation.
  */
 typedef struct {
-    /* Room AP storage: 206 samples; Hall AP storage: 1466 samples. */
-    float ap_buffer[1672];
-    unsigned ap_pos[2][4];
+    /* Separate L/R diffusers prevent antiphase stereo input cancellation. */
+    float ap_buffer[3432];
+    unsigned ap_pos[2][2][4];
 
     /* Room FDN storage: 2670 samples; Hall FDN storage: 14570 samples. */
     float fdn_buffer[17240];
