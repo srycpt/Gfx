@@ -1,0 +1,19 @@
+name: Space DSP tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential make libsndfile1-dev
+      - name: Build
+        run: make
+      - name: Run Space tests
+        run: make test
