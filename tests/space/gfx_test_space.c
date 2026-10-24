@@ -141,6 +141,13 @@ static int run_impulse(float macro, const char *name, const char *csv,
         mono_rms = (float)sqrt(sum / (double)N);
     }
     t60 = estimate_t60(left, right, decay_start, decay_end);
+    if ((!strcmp(name, "ROOM") && (t60 < 1.15f || t60 > 1.85f)) ||
+        (!strcmp(name, "HALL") && (t60 < 4.0f || t60 > 6.0f))) {
+        printf("%s decay target: FAIL\\n", name);
+        failed = 1;
+    } else {
+        printf("%s decay target: PASS\\n", name);
+    }
     printf("%s peak: %.6f (%.2f dBFS)\n", name, peak,
            peak > 0.0f ? 20.0f * log10f(peak) : -INFINITY);
     printf("%s estimated T60: %.2f s (fit %.2f–%.2f s)\n",
@@ -173,7 +180,8 @@ int main(void)
     gfx_space_process(&state, left, right, 64u, 0.0f);
     for (i = 0; i < 64u; ++i)
         if (left[i] != dry_l[i] || right[i] != dry_r[i]) failed = 1;
-    printf("exact dry bypass: %s\n", failed ? "FAIL" : "PASS");
+    if (state.ap_buffer[0] == 0.0f) failed = 1;
+    printf("exact dry bypass with live state: %s\\n", failed ? "FAIL" : "PASS");
 
     failed |= run_impulse(-1.0f, "ROOM", "space_room_impulse.csv", 0.1f, 1.2f);
     failed |= run_impulse(1.0f, "HALL", "space_hall_impulse.csv", 0.3f, 4.5f);
