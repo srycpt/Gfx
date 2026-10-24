@@ -227,3 +227,12 @@ void gfx_space_process(gfx_space_state *state, float *left, float *right,
     for (n = 0; n < frame_count; ++n)
         gfx_space_process_sample(state, &left[n], &right[n], macro);
 }
+
+void gfx_space_process_interleaved(gfx_space_state *state, float *stereo,
+                                   size_t frame_count, float macro)
+{
+    size_t n;
+    if (state == NULL || stereo == NULL) return;
+    for (n = 0; n < frame_count; ++n)
+        gfx_space_process_sample(state, &stereo[2u * n], &stereo[2u * n + 1u], macro);
+}
