@@ -9,14 +9,17 @@
 
 enum { ROOM = 0, HALL = 1, NETWORK_COUNT = 2 };
 
-static const unsigned k_ap_delay[NETWORK_COUNT][4] = {
-    {31u, 43u, 59u, 73u}, {173u, 233u, 449u, 611u}
+static const unsigned k_ap_delay[NETWORK_COUNT][2][4] = {
+    {{31u, 43u, 59u, 73u}, {37u, 47u, 67u, 83u}},
+    {{173u, 233u, 449u, 611u}, {197u, 251u, 431u, 647u}}
 };
-static const unsigned k_ap_offset[NETWORK_COUNT][4] = {
-    {0u, 31u, 74u, 133u}, {206u, 379u, 612u, 1061u}
+static const unsigned k_ap_offset[NETWORK_COUNT][2][4] = {
+    {{0u, 31u, 74u, 133u}, {206u, 243u, 290u, 357u}},
+    {{440u, 613u, 846u, 1295u}, {1906u, 2103u, 2354u, 2785u}}
 };
-static const float k_ap_coeff[NETWORK_COUNT][4] = {
-    {0.72f, 0.72f, 0.75f, 0.75f}, {0.65f, 0.65f, 0.70f, 0.70f}
+static const float k_ap_coeff[NETWORK_COUNT][2][4] = {
+    {{0.72f, 0.72f, 0.75f, 0.75f}, {0.70f, 0.74f, 0.73f, 0.76f}},
+    {{0.65f, 0.65f, 0.70f, 0.70f}, {0.63f, 0.68f, 0.69f, 0.72f}}
 };
 static const unsigned k_fdn_delay[NETWORK_COUNT][8] = {
     {149u, 211u, 263u, 293u, 337u, 397u, 463u, 557u},
@@ -91,23 +94,28 @@ static void update_feedback_gains(gfx_space_state *s, unsigned network, float t6
     }
 }
 
-static void run_network(gfx_space_state *s, unsigned network, float input,
+static void run_network(gfx_space_state *s, unsigned network,
+                        float input_l, float input_r,
                         float *wet_left, float *wet_right)
 {
-    float x = input;
+    float x[2] = {input_l, input_r};
     float d[8], q[8], feedback[8], write_value[8];
     const float alpha = (network == ROOM) ? s->room_damping_alpha : s->hall_damping_alpha;
-    unsigned i, j;
+    unsigned i, j, ch;
 
-    for (i = 0; i < 4u; ++i) {
-        const unsigned pos = s->ap_pos[network][i];
-        const unsigned offset = k_ap_offset[network][i];
-        const float delayed_v = s->ap_buffer[offset + pos];
-        const float v = x + k_ap_coeff[network][i] * delayed_v;
-        const float y = delayed_v - k_ap_coeff[network][i] * v;
-        s->ap_buffer[offset + pos] = v;
-        s->ap_pos[network][i] = (pos + 1u == k_ap_delay[network][i]) ? 0u : pos + 1u;
-        x = y;
+    /* Distinct all-pass paths decorrelate L/R before the shared FDN. */
+    for (ch = 0; ch < 2u; ++ch) {
+        for (i = 0; i < 4u; ++i) {
+            const unsigned pos = s->ap_pos[network][ch][i];
+            const unsigned offset = k_ap_offset[network][ch][i];
+            const float delayed_v = s->ap_buffer[offset + pos];
+            const float v = x[ch] + k_ap_coeff[network][ch][i] * delayed_v;
+            const float y = delayed_v - k_ap_coeff[network][ch][i] * v;
+            s->ap_buffer[offset + pos] = v;
+            s->ap_pos[network][ch][i] =
+                (pos + 1u == k_ap_delay[network][ch][i]) ? 0u : pos + 1u;
+            x[ch] = y;
+        }
     }
 
     for (i = 0; i < 8u; ++i) {
@@ -123,9 +131,12 @@ static void run_network(gfx_space_state *s, unsigned network, float input,
         for (j = 0; j < 8u; ++j) sum += k_hadamard[i][j] * q[j];
         feedback[i] = GFX_INV_SQRT8 * sum;
     }
-    for (i = 0; i < 8u; ++i)
-        write_value[i] = x * GFX_INV_SQRT8 +
+    for (i = 0; i < 8u; ++i) {
+        const float signed_right = ((i & 1u) == 0u) ? x[1] : -x[1];
+        /* Orthogonal L/R injection: L=R and L=-R both retain full energy. */
+        write_value[i] = 0.25f * (x[0] + signed_right) +
                          s->feedback_gain[network][i] * feedback[i];
+    }
 
     {
         float l = 0.0f, r = 0.0f;
@@ -164,7 +175,7 @@ void gfx_space_init(gfx_space_state *state)
 
 void gfx_space_process_sample(gfx_space_state *state, float *left, float *right, float macro)
 {
-    float dry_l, dry_r, mono, room_l, room_r, hall_l, hall_r, wet_l, wet_r;
+    float dry_l, dry_r, room_l, room_r, hall_l, hall_r, wet_l, wet_r;
     if (state == NULL || left == NULL || right == NULL) return;
     if (!state->initialized) gfx_space_init(state);
     if (!isfinite(macro)) macro = 0.0f;
@@ -189,9 +200,8 @@ void gfx_space_process_sample(gfx_space_state *state, float *left, float *right,
     state->hall_damping_alpha += GFX_SMOOTH_COEFF *
         (state->target_hall_damping_alpha - state->hall_damping_alpha);
 
-    mono = 0.5f * (dry_l + dry_r);
-    run_network(state, ROOM, mono, &room_l, &room_r);
-    run_network(state, HALL, mono, &hall_l, &hall_r);
+    run_network(state, ROOM, dry_l, dry_r, &room_l, &room_r);
+    run_network(state, HALL, dry_l, dry_r, &hall_l, &hall_r);
 
     if (macro == 0.0f) {
         *left = dry_l;
